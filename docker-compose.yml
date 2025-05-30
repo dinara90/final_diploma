@@ -1,0 +1,34 @@
+version: '3.8' # Указываем версию синтаксиса Docker Compose
+
+services:
+  document-pipeline-api: # Название вашего сервиса (может быть любым)
+    build:
+      context: . # Указывает, что Dockerfile находится в текущей директории
+      dockerfile: Dockerfile # Имя Dockerfile (если оно стандартное, можно опустить)
+    image: my_document_pipeline_api_compose # Опционально: имя для собранного образа
+    container_name: doc_pipeline_api_container # Опционально: имя для контейнера
+    ports:
+      - "8100:8100" # Проброс порта: <хост>:<контейнер>
+    volumes:
+      # Пути слева - это пути на вашей хост-машине.
+      # Пути справа - это пути внутри контейнера.
+      - /home/azureuser/vllm-transfer/dp_code/data/single_pdf_file:/data/single_pdf_file
+      - /home/azureuser/vllm-transfer/dp_code/output/pipeline_results_short_chunks_500_not_image:/data/processed_data
+      # - /home/azureuser/project_root/host_data/processed_data:/data/processed_data
+      - /home/azureuser/project_root/host_data/results:/data/results
+      - /home/azureuser/vllm-transfer/dp_code/models/section_classifier_deberta_v3:/app/models/section_classifier_deberta_v3
+      # Опционально: монтирование кэша Hugging Face для сохранения моделей между перезапусками
+      - /home/azureuser/project_root/.cache/huggingface:/app/.cache/huggingface
+      - /home/azureuser/vllm-transfer/dp_code/data/uploaded_pdfs:/data/uploaded_pdfs
+    environment:
+      - OPENAI_API_KEY=${} # Пример использования переменной окружения из хоста или .env файла
+      # Можно также задавать переменные напрямую:
+    deploy: # <--- ДОБАВИТЬ ЭТУ СЕКЦИЮ
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 # или 'all' для всех доступных GPU
+              capabilities: [gpu]
+    # restart: unless-stopped # Политика перезапуска контейнера
+    # command: ["uvicorn", "api_main:app", "--host", "0.0.0.0", "--port", "8000"] # Если нужно переопределить CMD из Dockerfile
