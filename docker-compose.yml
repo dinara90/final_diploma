@@ -21,7 +21,7 @@ services:
       - /home/azureuser/project_root/.cache/huggingface:/app/.cache/huggingface
       - /home/azureuser/vllm-transfer/dp_code/data/uploaded_pdfs:/data/uploaded_pdfs
     environment:
-      - OPENAI_API_KEY=${} # Пример использования переменной окружения из хоста или .env файла
+      - OPENAI_API_KEY=${${OPENAI_API_KEY}} # Пример использования переменной окружения из хоста или .env файла
       # Можно также задавать переменные напрямую:
     deploy: # <--- ДОБАВИТЬ ЭТУ СЕКЦИЮ
       resources:
