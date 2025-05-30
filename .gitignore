@@ -21,11 +21,12 @@ share/python-wheels/
 .installed.cfg
 *.egg
 
-# Virtual environment
+# ВИРТУАЛЬНАЯ СРЕДА (КРИТИЧНО!)
 .venv/
 venv/
 ENV/
 env/
+.env
 
 # IDE
 .vscode/
@@ -37,7 +38,7 @@ env/
 .DS_Store
 Thumbs.db
 
-# Data files (большие файлы)
+# БОЛЬШИЕ ФАЙЛЫ ДАННЫХ
 data/uploaded_pdfs/
 data/pdf_files/
 data/output/
@@ -45,18 +46,29 @@ output/
 *.pdf
 *.docx
 
-# Models (большие файлы модели)
+# МОДЕЛИ ML (ОЧЕНЬ БОЛЬШИЕ!)
 models/section_classifier_deberta_v3/*.safetensors
 models/section_classifier_deberta_v3/spm.model
+models/section_classifier_deberta_v3/checkpoints/
+*.safetensors
+*.bin
+spm.model
+checkpoints/
+optimizer.pt
+
+# ВЫХОДНЫЕ ДАННЫЕ МОДЕЛЕЙ
+output/section_classifier_model/
+output/faiss_indices/
+output/embeddings/
 
 # Cache
 .cache/
 *.log
 
-# FAISS indices
+# FAISS индексы
 *.index
 *.npy
 
-# Temporary files
+# Временные файлы
 temp/
 tmp/
