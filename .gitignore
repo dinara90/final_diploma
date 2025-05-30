@@ -72,3 +72,15 @@ output/embeddings/
 # Временные файлы
 temp/
 tmp/
+
+# Environment variables (IMPORTANT!)
+.env
+.env.local
+.env.production
+.env.staging
+
+# Secrets and API keys
+secrets/
+*.key
+*.pem
+*.p12
