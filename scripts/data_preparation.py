@@ -14,12 +14,12 @@ from dotenv import load_dotenv
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s' //комментарии
 )
-logger = logging.getLogger("DDR-DataPrep")
+logger = logging.getLogger("DDR-DataPrep")//ошибка и вся инфа
 
-MAX_TOKENS = 4000
-OVERLAP_TOKENS = 200
+MAX_TOKENS = 4000//на чанки по 4000 знаков
+OVERLAP_TOKENS = 200//сдвигается на 200 чтобы смысл не потерять
 
 SECTION_LABELS = [
     #"current_operations",
@@ -31,7 +31,7 @@ SECTION_LABELS = [
     "well_information",
 ]
 
-def setup_api_key():
+def setup_api_key(): //чтобы поключиться через апи к джпт
     """Retrieves the OpenAI API key from environment variables, loading .env file first."""
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -39,12 +39,12 @@ def setup_api_key():
         raise ValueError("OpenAI API key not found. Set the OPENAI_API_KEY environment variable or place it in a .env file.")
     return api_key
 
-def count_tokens(text):
+def count_tokens(text)://посчитать количесвто токенов
     """Count the number of tokens in a text string."""
     encoding = tiktoken.get_encoding("cl100k_base")
     return len(encoding.encode(text))
 
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_path)://достаем текст из пдф
     """Extract text from a PDF file."""
     try:
         doc = fitz.open(pdf_path)
@@ -56,7 +56,7 @@ def extract_text_from_pdf(pdf_path):
         logger.error(f"Error extracting text from {pdf_path}: {e}")
         return ""
     
-def split_text_into_chunks(text, max_tokens=MAX_TOKENS, overlap=OVERLAP_TOKENS):
+def split_text_into_chunks(text, max_tokens=MAX_TOKENS, overlap=OVERLAP_TOKENS): //делим на чанки текст
     """Split text into chunks respecting token limits."""
     if not text:
         return []
@@ -64,12 +64,12 @@ def split_text_into_chunks(text, max_tokens=MAX_TOKENS, overlap=OVERLAP_TOKENS):
     text = re.sub(r' +', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     
-    encoding = tiktoken.get_encoding("cl100k_base")
-    tokens = encoding.encode(text)
+    encoding = tiktoken.get_encoding("cl100k_base")//получаем библиотеку чтобы превращать текст в токены
+    tokens = encoding.encode(text)//текст в токены превращает
     
     chunks = []
     i = 0
-    while i < len(tokens):
+    while i < len(tokens):// проходимся по токинам делим их на чанки по 4000 по циклу
         end = min(i + max_tokens, len(tokens))
         
         chunk_tokens = tokens[i:end]
@@ -145,7 +145,7 @@ def identify_ddr_sections(text_chunk, client):
     {text_chunk}
     """
     try:
-        response = client.chat.completions.create(
+        response = client.chat.completions.create(//подключаемся к джпт
             model="gpt-4.1-mini-2025-04-14",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
@@ -157,7 +157,7 @@ def identify_ddr_sections(text_chunk, client):
         logger.debug(f"Response from GPT (first 500 chars): {response_text[:500]}...")
         
         try:
-            results = json.loads(response_text)
+            results = json.loads(response_text)//переводит в json
             
             # Handle various response formats
             if isinstance(results, list):
@@ -189,7 +189,7 @@ def identify_ddr_sections(text_chunk, client):
         logger.error(f"API call error: {e}")
         return []
 
-def validate_section(section):
+def validate_section(section)://проверяем что текст вернутый из джпт корректный
     """Validate that a section has the correct format and reasonable content."""
     if not isinstance(section, dict):
         logger.warning(f"Skipping invalid section (not a dict): {type(section)}")
@@ -214,7 +214,7 @@ def validate_section(section):
     
     return True
 
-def process_pdf_file(pdf_path, client):
+def process_pdf_file(pdf_path, client)://здесь весь пайплан
     """Process a PDF file and generate labeled training data."""
     logger.info(f"Processing {pdf_path}")
     
@@ -223,7 +223,7 @@ def process_pdf_file(pdf_path, client):
         logger.error(f"No text extracted from {pdf_path}")
         return []
     
-    logger.debug(f"""Sample of extracted text (first 500 chars):
+    logger.debug(f"""Sample of extracted text (first 500 chars)://500 знаков выводим в терминал(проверка)
 {full_text[:500]}...""")
 
     chunks = split_text_into_chunks(full_text)
@@ -232,10 +232,10 @@ def process_pdf_file(pdf_path, client):
     all_sections = []
     
     for i, chunk in enumerate(tqdm(chunks, desc=f"Processing chunks for {Path(pdf_path).name}")):
-        sections = identify_ddr_sections(chunk, client)
+        sections = identify_ddr_sections(chunk, client)//возращает из джпт в джейсон врмт текст и лейбл
         logger.info(f"Chunk {i+1}/{len(chunks)}: Found {len(sections)} potential sections from GPT")
 
-        valid_sections = []
+        valid_sections = []//здесь сохранаяется текст из джпт текст и лейбл
         invalid_count = 0
         for section in sections:
             if validate_section(section):
@@ -251,7 +251,7 @@ def process_pdf_file(pdf_path, client):
     
     return all_sections
 
-def analyze_results(all_sections):
+def analyze_results(all_sections)://здесь аннализируется скока текста скока лейблов
     """Analyze and report on the labeled data distribution."""
     if not all_sections:
         logger.warning("No sections to analyze")
@@ -278,7 +278,7 @@ def analyze_results(all_sections):
     
     return summary_df
 
-def main():
+def main()://здесь все вызываем все фунции выше и запускаем
     """Main function to process DDR PDFs."""
     parser = argparse.ArgumentParser(description="Process drilling reports for ML training data")
     parser.add_argument("--input_dir", type=str, required=True, help="Directory containing PDF files")
@@ -307,7 +307,7 @@ def main():
         sections = process_pdf_file(str(pdf_file), client)
         all_sections.extend(sections)
         
-    output_json_path = os.path.join(args.output_dir, "labeled_sections.json")
+    output_json_path = os.path.join(args.output_dir, "labeled_sections.json")//передаем в аут путе в джейсон формате
     logger.info(f"Saving all {len(all_sections)} sections to {output_json_path}")
     try:
         with open(output_json_path, 'w', encoding='utf-8') as f:
