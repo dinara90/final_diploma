@@ -61,8 +61,8 @@ def split_text_into_chunks(text, max_tokens=MAX_TOKENS, overlap=OVERLAP_TOKENS):
     if not text:
         return []
     
-    text = re.sub(r' +', ' ', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r' +', ' ', text)//удаляем лишние проблемы
+    text = re.sub(r'\n{3,}', '\n\n', text)//удаляем переносы строк
     
     encoding = tiktoken.get_encoding("cl100k_base")//получаем библиотеку чтобы превращать текст в токены
     tokens = encoding.encode(text)//текст в токены превращает
@@ -119,7 +119,7 @@ def split_text_into_chunks(text, max_tokens=MAX_TOKENS, overlap=OVERLAP_TOKENS):
 # Text to analyze:
 # {text_chunk}
 
-def identify_ddr_sections(text_chunk, client):
+def identify_ddr_sections(text_chunk, client)://Отправка чанка в GPT для классификации секций отчёта
     """GPT-4 to identify and label sections in a text chunk."""
     prompt = f"""You are an expert in analyzing drilling reports (DDRs) from the oil and gas industry.
     Below is a chunk of text from a drilling report that has been extracted from a PDF, which may have lost some formatting.
@@ -153,11 +153,11 @@ def identify_ddr_sections(text_chunk, client):
             max_tokens=32768,
         )
         
-        response_text = response.choices[0].message.content
-        logger.debug(f"Response from GPT (first 500 chars): {response_text[:500]}...")
+        response_text = response.choices[0].message.content//ответ в джсн от джпт
+        logger.debug(f"Response from GPT (first 500 chars): {response_text[:500]}...")//берет первые 500 проверяет на ошибку
         
         try:
-            results = json.loads(response_text)//переводит в json
+            results = json.loads(response_text)//переводит в json(из строки в список)
             
             # Handle various response formats
             if isinstance(results, list):
@@ -213,12 +213,12 @@ def validate_section(section)://проверяем что текст верну�
         return False
     
     return True
-
-def process_pdf_file(pdf_path, client)://здесь весь пайплан
+//здесь весь пайплан ниже
+def process_pdf_file(pdf_path, client)://Обрабатывает один PDF и возвращает список размеченных секций
     """Process a PDF file and generate labeled training data."""
     logger.info(f"Processing {pdf_path}")
     
-    full_text = extract_text_from_pdf(pdf_path)
+    full_text = extract_text_from_pdf(pdf_path)//Извлекаем текст из PDF
     if not full_text:
         logger.error(f"No text extracted from {pdf_path}")
         return []
@@ -226,16 +226,16 @@ def process_pdf_file(pdf_path, client)://здесь весь пайплан
     logger.debug(f"""Sample of extracted text (first 500 chars)://500 знаков выводим в терминал(проверка)
 {full_text[:500]}...""")
 
-    chunks = split_text_into_chunks(full_text)
+    chunks = split_text_into_chunks(full_text)//Разбиваем текст на чанки
     logger.info(f"Split into {len(chunks)} chunks")
     
-    all_sections = []
+    all_sections = []//Это будет итоговый список всех размеченных участков ({"text": ..., "label": ...})
     
-    for i, chunk in enumerate(tqdm(chunks, desc=f"Processing chunks for {Path(pdf_path).name}")):
-        sections = identify_ddr_sections(chunk, client)//возращает из джпт в джейсон врмт текст и лейбл
+    for i, chunk in enumerate(tqdm(chunks, desc=f"Processing chunks for {Path(pdf_path).name}")):// Обрабатываем каждый чанк
+        sections = identify_ddr_sections(chunk, client)//Отправляем текст в GPTи возвращает список секций(текст лейбл)
         logger.info(f"Chunk {i+1}/{len(chunks)}: Found {len(sections)} potential sections from GPT")
 
-        valid_sections = []//здесь сохранаяется текст из джпт текст и лейбл
+        valid_sections = []//здесь сохранаяется текст из джпт текст и лейбл(Фильтруем только валидные секции)
         invalid_count = 0
         for section in sections:
             if validate_section(section):
@@ -246,10 +246,10 @@ def process_pdf_file(pdf_path, client)://здесь весь пайплан
         if invalid_count > 0:
             logger.warning(f"Skipped {invalid_count} invalid sections in chunk {i+1}/{len(chunks)}")
 
-        all_sections.extend(valid_sections)
+        all_sections.extend(valid_sections)//Сохраняем валидные секции
         logger.info(f"Added {len(valid_sections)} valid sections from chunk {i+1}. Total accumulated: {len(all_sections)}")
     
-    return all_sections
+    return all_sections//Возвращаем результат
 
 def analyze_results(all_sections)://здесь аннализируется скока текста скока лейблов
     """Analyze and report on the labeled data distribution."""
@@ -281,13 +281,13 @@ def analyze_results(all_sections)://здесь аннализируется ск
 def main()://здесь все вызываем все фунции выше и запускаем
     """Main function to process DDR PDFs."""
     parser = argparse.ArgumentParser(description="Process drilling reports for ML training data")
-    parser.add_argument("--input_dir", type=str, required=True, help="Directory containing PDF files")
-    parser.add_argument("--output_dir", type=str, required=True, help="Directory for output files")
-    parser.add_argument("--pattern", type=str, default="*.pdf", help="File pattern to match (default: *.pdf)")
-    args = parser.parse_args()
+    parser.add_argument("--input_dir", type=str, required=True, help="Directory containing PDF files")//команды для ком строки путь к папке с ддр
+    parser.add_argument("--output_dir", type=str, required=True, help="Directory for output files")//путь где сохранится аутпут джсн
+    parser.add_argument("--pattern", type=str, default="*.pdf", help="File pattern to match (default: *.pdf)")// Шаблон поиска файлов в папке (по умолчанию — все PDF)
+    args = parser.parse_args()//сохраняем переданные аргументы
     
-    os.makedirs(args.output_dir, exist_ok=True)
-    
+    os.makedirs(args.output_dir, exist_ok=True)//если  ещё не существует аутпут output_dir, то он его создает
+    //  Настраиваем подключение к OpenAI API
     try:
         api_key = setup_api_key()
         client = openai.OpenAI(api_key=api_key)
@@ -295,7 +295,7 @@ def main()://здесь все вызываем все фунции выше и 
         logger.error(str(e))
         return
     
-    pdf_files = list(Path(args.input_dir).glob(args.pattern))
+    pdf_files = list(Path(args.input_dir).glob(args.pattern))//  Получаем список всех PDF-файлов, соответствующих шаблону (*.pdf) во входной папке
     if not pdf_files:
         logger.error(f"No PDF files found in {args.input_dir} matching pattern {args.pattern}")
         return
@@ -303,11 +303,11 @@ def main()://здесь все вызываем все фунции выше и 
     logger.info(f"Found {len(pdf_files)} PDF files to process")
     
     all_sections = []
-    for pdf_file in pdf_files:
-        sections = process_pdf_file(str(pdf_file), client)
-        all_sections.extend(sections)
+    for pdf_file in pdf_files:// Проходимся по каждому PDF-файлу
+        sections = process_pdf_file(str(pdf_file), client)//извлекаем текст → делим на чанки → отправляем в GPT → получаем размеченные секции
+        all_sections.extend(sections)//Добавляем все секции из текущего файла в общий список
         
-    output_json_path = os.path.join(args.output_dir, "labeled_sections.json")//передаем в аут путе в джейсон формате
+    output_json_path = os.path.join(args.output_dir, "labeled_sections.json")//Сохраняем  JSON-файл в выходной дирек
     logger.info(f"Saving all {len(all_sections)} sections to {output_json_path}")
     try:
         with open(output_json_path, 'w', encoding='utf-8') as f:
@@ -316,9 +316,9 @@ def main()://здесь все вызываем все фунции выше и 
         logger.error(f"Failed to save sections to JSON: {e}")
     
     summary_df = analyze_results(all_sections)
-    if summary_df is not None:
+    if summary_df is not None://Если анализ прошёл успешно в CSV-файл(статистика)
         output_csv_path = os.path.join(args.output_dir, "label_distribution_summary.csv")
-        logger.info(f"Saving label distribution summary to {output_csv_path}")
+        logger.info(f"Saving label distribution summary to {output_csv_path}")//Логируем успешное завершение всей обработки
         try:
             summary_df.to_csv(output_csv_path, index=False)
         except IOError as e:
@@ -328,5 +328,5 @@ def main()://здесь все вызываем все фунции выше и 
     
     logger.info("Processing complete!")
     
-if __name__ == "__main__":
+if __name__ == "__main__"://чтобы запустить
     main()
